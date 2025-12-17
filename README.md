@@ -2,7 +2,7 @@
 Our ACDT work log
 
 
-```python
+```
 def pickup_sequence(target_det, frame_shape):
     global state, last_pick_time
 
@@ -25,5 +25,7 @@ def pickup_sequence(target_det, frame_shape):
     wy = car_y + forward_m * np.sin(heading) + lateral_m * np.cos(heading)
 
     add_heat_point_world(wx, wy)
+```
+
 
 
