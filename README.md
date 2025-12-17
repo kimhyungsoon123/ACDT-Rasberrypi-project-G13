@@ -1,6 +1,6 @@
 # ACDT-Rasberrypi-project-G13
 1. Camera Frame Acquisition and Sharing
-```
+```python
 def camera_thread():
     global latest_frame
     cap = cv2.VideoCapture(0)
