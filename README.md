@@ -1,37 +1,60 @@
 # ACDT-Rasberrypi-project-G13
-Our ACDT work log
-
-
+1. Camera Frame Acquisition and Sharing
 ```
-def pickup_sequence(target_det, frame_shape):
-    global state, last_pick_time
+def camera_thread():
+    global latest_frame
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAM_W)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAM_H)
+    cap.set(cv2.CAP_PROP_FPS, CAM_FPS)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
-    with state_lock:
-        state = STATE_PICKING
-
-    stop()
-    steer.angle = STEER_CENTER_ANGLE
-
-    h, w = frame_shape[:2]
-    x1, y1, x2, y2, conf, cls = target_det
-    cx_n = ((x1 + x2) * 0.5) / w
-    cy_n = ((y1 + y2) * 0.5) / h
-
-    HEAT_SCALE = 4.0
-    forward_m = max(0.0, (1.0 - cy_n)) * (1.30 * HEAT_SCALE)
-    lateral_m = (cx_n - 0.5) * (1.80 * HEAT_SCALE)
-
-    wx = car_x + forward_m * np.cos(heading) - lateral_m * np.sin(heading)
-    wy = car_y + forward_m * np.sin(heading) + lateral_m * np.cos(heading)
-
-    add_heat_point_world(wx, wy)
+    while running:
+        ret, frame = cap.read()
+        if not ret:
+            time.sleep(0.02)
+            continue
+        with frame_lock:
+            latest_frame = frame
+        frame_event.set()
 ```
-
-sex
-
+2. YOLO-Based Cigarette Butt Detection
 ```
-code
+def yolo_thread(model):
+    global latest_dets_all
+    last_run = 0.0
 
+    while running:
+        frame_event.wait(timeout=0.2)
+
+        with state_lock:
+            s = state
+        if s == STATE_PICKING:
+            time.sleep(0.02)
+            continue
+
+        now = time.monotonic()
+        if now - last_run < YOLO_INTERVAL_S:
+            time.sleep(0.005)
+            continue
+        last_run = now
+
+        with frame_lock:
+            frame = None if latest_frame is None else latest_frame.copy()
+        if frame is None:
+            continue
+
+        results = model(frame[..., ::-1], size=YOLO_IMGSZ)
+        det = results.xyxy[0]
+
+        with det_lock:
+            if det is not None and len(det) > 0:
+                det_sorted = det[det[:, 4].argsort(descending=True)]
+                latest_dets_all = det_sorted[:, :6].tolist()
+            else:
+                latest_dets_all = None
+```
 
 
 
