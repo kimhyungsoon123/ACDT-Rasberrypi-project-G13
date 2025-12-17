@@ -27,5 +27,11 @@ def pickup_sequence(target_det, frame_shape):
     add_heat_point_world(wx, wy)
 ```
 
+sex
+
+```
+code
+
+
 
 
