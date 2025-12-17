@@ -1,6 +1,57 @@
 # Whole code
-1. RCcar Driving Mechanism Whole Code
-   
+1. AI Learning Whole Code
+```python
+
+# 1. Mount Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
+
+
+# 2. Clone YOLOv5 and install requirements
+!git clone https://github.com/ultralytics/yolov5
+%cd yolov5
+!pip install -r requirements.txt
+
+
+# 3. Create YOLO data configuration file
+%%writefile /content/drive/MyDrive/data.yaml
+train: /content/drive/MyDrive/cigarette_dataset/images/train
+val: /content/drive/MyDrive/cigarette_dataset/images/val
+test: /content/drive/MyDrive/cigarette_dataset/images/test
+
+nc: 1
+names: ['cigarette_butt']
+
+
+# 4. Verify dataset and config file
+!ls /content/drive/MyDrive/cigarette_dataset/images/train
+!cat /content/drive/MyDrive/data.yaml
+
+
+# 5. Train YOLOv5 model
+%cd /content/yolov5
+
+!python train.py \
+    --img 640 \
+    --batch 16 \
+    --epochs 50 \
+    --data /content/drive/MyDrive/data.yaml \
+    --weights yolov5s.pt \
+    --name cigarette_model
+
+
+# 6. Save trained model to Google Drive
+!cp /content/yolov5/runs/train/cigarette_model/weights/best.pt \
+    /content/drive/MyDrive/cigarette_best.pt
+
+
+# 7. (Optional) Download trained model to local machine
+from google.colab import files
+files.download('/content/drive/MyDrive/cigarette_best.pt')
+
+```
+2. RCcar Driving Mechanism Whole Code
+```python
 import time
 import cv2
 import torch
@@ -416,3 +467,82 @@ def start():
 
 if __name__ == "__main__":
     start()
+```
+3. Heat Map Analysis Whole Code
+```python
+import cv2
+import numpy as np
+
+
+MAP_W_M = 1.2
+MAP_H_M = 2.0
+BOOTH_M = 0.3
+
+
+img = cv2.imread("heatmap.png")
+h, w, _ = img.shape
+
+
+booth_w = int(BOOTH_M / MAP_W_M * w)
+booth_h = int(BOOTH_M / MAP_H_M * h)
+
+
+hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+
+lower_red1 = np.array([0, 120, 70])
+upper_red1 = np.array([10, 255, 255])
+lower_red2 = np.array([170, 120, 70])
+upper_red2 = np.array([180, 255, 255])
+
+
+mask = cv2.inRange(hsv, lower_red1, upper_red1) | cv2.inRange(hsv, lower_red2, upper_red2)
+
+
+best_count = 0
+best_score = float("inf")
+best_xy = (0, 0)
+
+
+step = 5
+
+
+for x in range(0, w - booth_w, step):
+    for y in range(0, h - booth_h, step):
+        roi = mask[y:y + booth_h, x:x + booth_w]
+        count = cv2.countNonZero(roi)
+
+
+        if count == 0:
+            continue
+
+
+        ys, xs = np.where(roi > 0)
+        xs = xs + x
+        ys = ys + y
+
+
+        cx = x + booth_w / 2
+        cy = y + booth_h / 2
+
+
+        mx = np.mean(xs)
+        my = np.mean(ys)
+
+
+        score = (cx - mx) ** 2 + (cy - my) ** 2
+
+
+        if count > best_count or (count == best_count and score < best_score):
+            best_count = count
+            best_score = score
+            best_xy = (x, y)
+
+
+result = img.copy()
+x, y = best_xy
+cv2.rectangle(result, (x, y), (x + booth_w, y + booth_h), (0, 255, 0), 2)
+
+
+cv2.imwrite("result_with_booth.png", result)
+```
