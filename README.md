@@ -1,6 +1,7 @@
 # ACDT-Rasberrypi-project-G13
 1. Camera Frame Acquisition and Sharing
 ```python
+
 def camera_thread():
     global latest_frame
     cap = cv2.VideoCapture(0)
@@ -18,9 +19,11 @@ def camera_thread():
         with frame_lock:
             latest_frame = frame
         frame_event.set()
+
 ```
 2. YOLO-Based Cigarette Butt Detection
-```
+```python
+
 def yolo_thread(model):
     global latest_dets_all
     last_run = 0.0
