@@ -1,4 +1,4 @@
-#Heat Map Analysis
+# Heat Map Analysis
 1. Heatmap Loading and Real-World Scaling
 ```python
 MAP_W_M = 1.2
